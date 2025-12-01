@@ -56,6 +56,34 @@
 
 // Analyze the rotations in your attached document. What's the actual password to open the door?
 
+// --- Part Two ---
+// You're sure that's the right password, but the door won't open. You knock, but nobody answers. You build a snowman while you think.
+
+// As you're rolling the snowballs for your snowman, you find another security document that must have fallen into the snow:
+
+// "Due to newer security protocols, please use password method 0x434C49434B until further notice."
+
+// You remember from the training seminar that "method 0x434C49434B" means you're actually supposed to count the number of times any click causes the dial to point at 0, regardless of whether it happens during a rotation or at the end of one.
+
+// Following the same rotations as in the above example, the dial points at zero a few extra times during its rotations:
+
+// The dial starts by pointing at 50.
+// The dial is rotated L68 to point at 82; during this rotation, it points at 0 once. +1
+// The dial is rotated L30 to point at 52.
+// The dial is rotated R48 to point at 0. +1
+// The dial is rotated L5 to point at 95.
+// The dial is rotated R60 to point at 55; during this rotation, it points at 0 once. +1
+// The dial is rotated L55 to point at 0. +1
+// The dial is rotated L1 to point at 99.
+// The dial is rotated L99 to point at 0. +1
+// The dial is rotated R14 to point at 14.
+// The dial is rotated L82 to point at 32; during this rotation, it points at 0 once. +1
+// In this example, the dial points at 0 three times at the end of a rotation, plus three more times during a rotation. So, in this example, the new password would be 6.
+
+// Be careful: if the dial were pointing at 50, a single rotation like R1000 would cause the dial to point at 0 ten times before returning back to 50!
+
+// Using password method 0x434C49434B, what is the password to open the door?
+
 enum Rotation {
     Left(u32),
     Right(u32),
@@ -66,6 +94,13 @@ impl Rotation {
         match self {
             Rotation::Left(n) => -(*n as i32),
             Rotation::Right(n) => *n as i32,
+        }
+    }
+
+    fn normal(&self) -> i32 {
+        match self {
+            Rotation::Left(_) => -1,
+            Rotation::Right(_) => 1,
         }
     }
 }
@@ -98,11 +133,21 @@ impl RotaryLock {
         }
     }
 
-    fn rotate(&mut self, r: &Rotation) {
+    fn rotate_1(&mut self, r: &Rotation) {
         self.position = (self.position + r.change()).rem_euclid(self.max);
 
         if self.position == 0 {
             self.zero_count += 1;
+        }
+    }
+
+    fn rotate_2(&mut self, r: &Rotation) {
+        for _ in 0..r.change().abs() {
+            self.position = (self.position + r.normal()).rem_euclid(self.max);
+
+            if self.position == 0 {
+                self.zero_count += 1;
+            }
         }
     }
 
@@ -123,12 +168,12 @@ mod tests {
             .collect()
     }
 
-    fn get_password(data: &str) -> u32 {
+    fn get_password(data: &str, rotate: fn (&mut RotaryLock, &Rotation)) -> u32 {
         let rotations = parse_rotations(data);
         let mut rotary_lock = RotaryLock::new();
 
         for r in rotations {
-            rotary_lock.rotate(&r)
+            rotate(&mut rotary_lock, &r)
         }
 
         rotary_lock.password()
@@ -136,15 +181,29 @@ mod tests {
 
     #[test]
     fn test_day_1_part_1_sample() {
-        let password = get_password(include_str!("assets/day_1_part_1_sample.txt"));
+        let password = get_password(include_str!("assets/day_1_sample.txt"), RotaryLock::rotate_1);
 
         assert_eq!(password, 3);
     }
 
     #[test]
     fn test_day_1_part_1() {
-        let password = get_password(include_str!("assets/day_1_part_1.txt"));
+        let password = get_password(include_str!("assets/day_1.txt"), RotaryLock::rotate_1);
 
         assert_eq!(password, 1052);
+    }
+
+    #[test]
+    fn test_day_1_part_2_sample() {
+        let password = get_password(include_str!("assets/day_1_sample.txt"), RotaryLock::rotate_2);
+
+        assert_eq!(password, 6);
+    }
+
+    #[test]
+    fn test_day_1_part_2() {
+        let password = get_password(include_str!("assets/day_1.txt"), RotaryLock::rotate_2);
+
+        assert_eq!(password, 6295);
     }
 }
