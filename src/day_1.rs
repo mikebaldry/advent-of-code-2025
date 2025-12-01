@@ -96,13 +96,6 @@ impl Rotation {
             Rotation::Right(n) => *n as i32,
         }
     }
-
-    fn normal(&self) -> i32 {
-        match self {
-            Rotation::Left(_) => -1,
-            Rotation::Right(_) => 1,
-        }
-    }
 }
 
 impl From<&str> for Rotation {
@@ -121,7 +114,7 @@ impl From<&str> for Rotation {
 struct RotaryLock {
     position: i32,
     max: i32,
-    zero_count: u32,
+    rotations: u32,
 }
 
 impl RotaryLock {
@@ -129,7 +122,7 @@ impl RotaryLock {
         Self {
             position: 50,
             max: 100,
-            zero_count: 0,
+            rotations: 0,
         }
     }
 
@@ -137,22 +130,32 @@ impl RotaryLock {
         self.position = (self.position + r.change()).rem_euclid(self.max);
 
         if self.position == 0 {
-            self.zero_count += 1;
+            self.rotations += 1;
         }
     }
 
     fn rotate_2(&mut self, r: &Rotation) {
-        for _ in 0..r.change().abs() {
-            self.position = (self.position + r.normal()).rem_euclid(self.max);
+        let new_position = (self.position + r.change()).rem_euclid(self.max);
+        let mut new_rotations = (self.position + r.change())
+            .div_euclid(self.max)
+            .unsigned_abs();
+
+        if let Rotation::Left(_) = r {
+            if new_position == 0 {
+                new_rotations += 1;
+            }
 
             if self.position == 0 {
-                self.zero_count += 1;
+                new_rotations -= 1;
             }
         }
+
+        self.position = new_position;
+        self.rotations += new_rotations;
     }
 
     fn password(&self) -> u32 {
-        self.zero_count
+        self.rotations
     }
 }
 
@@ -168,7 +171,7 @@ mod tests {
             .collect()
     }
 
-    fn get_password(data: &str, rotate: fn (&mut RotaryLock, &Rotation)) -> u32 {
+    fn get_password(data: &str, rotate: fn(&mut RotaryLock, &Rotation)) -> u32 {
         let rotations = parse_rotations(data);
         let mut rotary_lock = RotaryLock::new();
 
@@ -181,7 +184,10 @@ mod tests {
 
     #[test]
     fn test_day_1_part_1_sample() {
-        let password = get_password(include_str!("assets/day_1_sample.txt"), RotaryLock::rotate_1);
+        let password = get_password(
+            include_str!("assets/day_1_sample.txt"),
+            RotaryLock::rotate_1,
+        );
 
         assert_eq!(password, 3);
     }
@@ -195,7 +201,10 @@ mod tests {
 
     #[test]
     fn test_day_1_part_2_sample() {
-        let password = get_password(include_str!("assets/day_1_sample.txt"), RotaryLock::rotate_2);
+        let password = get_password(
+            include_str!("assets/day_1_sample.txt"),
+            RotaryLock::rotate_2,
+        );
 
         assert_eq!(password, 6);
     }
