@@ -108,6 +108,8 @@ fn total_output_joltage(data: &str, part: fn(bank: &[u32]) -> u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use std::time;
+
     use super::*;
 
     #[test]
@@ -135,10 +137,14 @@ mod tests {
     }
 
     #[test]
-    fn test_day_3_part_2() {
+    fn test_day_3_part_2_real() {
+        let t = time::Instant::now();
+
         assert_eq!(
             total_output_joltage(include_str!("assets/day_3.txt"), part_2),
             169685670469164
         );
+
+        println!("time taken: {:?}", t.elapsed());
     }
 }

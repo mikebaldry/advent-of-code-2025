@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_day_2_part_1() {
+    fn test_day_2_part_1_real() {
         let mut day_two = DayTwo::new(include_str!("assets/day_2.txt"));
         assert_eq!(day_two.result(DayTwo::part_1), 40398804950);
     }
@@ -164,7 +164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_day_2_part_2() {
+    fn test_day_2_part_2_real() {
         let mut day_two = DayTwo::new(include_str!("assets/day_2.txt"));
         assert_eq!(day_two.result(DayTwo::part_2), 65794984339);
     }

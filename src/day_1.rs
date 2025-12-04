@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_day_1_part_1() {
+    fn test_day_1_part_1_real() {
         let password = get_password(include_str!("assets/day_1.txt"), RotaryLock::rotate_1);
 
         assert_eq!(password, 1052);
@@ -210,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn test_day_1_part_2() {
+    fn test_day_1_part_2_real() {
         let password = get_password(include_str!("assets/day_1.txt"), RotaryLock::rotate_2);
 
         assert_eq!(password, 6295);
