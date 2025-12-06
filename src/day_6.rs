@@ -75,24 +75,20 @@ fn calculate(op: char, values: &[u64]) -> u64 {
 }
 
 fn digits_to_num(digits: &[Option<char>]) -> Option<u64> {
-    let digits = digits.iter().filter_map(|&c| {
-        if let Some(c) = c
-            && c.is_ascii_digit()
-        {
-            Some(c as u8 - b'0')
-        } else {
-            None
-        }
-    });
+    let result = digits
+        .iter()
+        .filter_map(|&c| {
+            if let Some(c) = c
+                && c.is_ascii_digit()
+            {
+                Some(c as u8 - b'0')
+            } else {
+                None
+            }
+        })
+        .fold(0, |acc, digit| acc * 10 + digit as u64);
 
-    let mut result: u64 = 0;
-    let mut pow: u64 = 1;
-    for digit in digits.rev() {
-        result += digit as u64 * pow;
-        pow *= 10;
-    }
-
-    if pow > 1 { Some(result) } else { None }
+    if result > 0 { Some(result) } else { None }
 }
 
 #[cfg(test)]
