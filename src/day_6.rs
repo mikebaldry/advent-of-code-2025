@@ -1,100 +1,104 @@
+fn part_1(s: &str) -> u64 {
+    let mut lines = s.lines().rev();
+    let operators: Vec<&str> = lines.next().unwrap().split_whitespace().collect();
+    let row_iters = lines.map(|l| l.split_whitespace().map(|o| o.parse::<u64>().unwrap()));
+    let mut results = vec![0; operators.len()];
+
+    for row_iter in row_iters {
+        for (col, value) in row_iter.enumerate() {
+            match operators[col] {
+                "+" => {
+                    results[col] += value;
+                }
+                "*" => {
+                    if results[col] == 0 {
+                        results[col] = 1;
+                    }
+                    results[col] *= value;
+                }
+                _ => panic!("wut is {}", operators[col]),
+            }
+        }
+    }
+
+    results.iter().sum()
+}
+
+fn part_2(s: &str) -> u64 {
+    // Now uses an iterator per line to step each column, and performing operation when it changes
+    // far fewer allocations and simpler to read.
+
+    let mut line_iters: Vec<_> = s.lines().map(|l| l.chars()).collect();
+    let mut sum = 0;
+
+    let mut current_op: Option<char> = None;
+    let mut current_nums: Vec<u64> = Vec::new();
+
+    loop {
+        let col = line_iters
+            .iter_mut()
+            .map(|l| l.next())
+            .collect::<Vec<Option<char>>>();
+
+        if col.iter().all(Option::is_none) {
+            sum += calculate(current_op.unwrap(), &current_nums);
+            current_nums.clear();
+            break;
+        }
+
+        if let Some(op) = col.last().unwrap()
+            && !op.is_ascii_whitespace()
+        {
+            if current_op.is_some() {
+                sum += calculate(current_op.unwrap(), &current_nums);
+                current_op = Some(*op);
+                current_nums.clear();
+            } else {
+                current_op = Some(*op);
+            }
+        }
+
+        if let Some(num) = digits_to_num(&col[0..col.len() - 1]) {
+            current_nums.push(num);
+        }
+    }
+
+    sum
+}
+
+fn calculate(op: char, values: &[u64]) -> u64 {
+    match op {
+        '+' => values.iter().sum(),
+        '*' => values.iter().product(),
+        op => panic!("wut is {op}"),
+    }
+}
+
+fn digits_to_num(digits: &[Option<char>]) -> Option<u64> {
+    let digits = digits.iter().filter_map(|&c| {
+        if let Some(c) = c
+            && c.is_ascii_digit()
+        {
+            Some(c as u8 - b'0')
+        } else {
+            None
+        }
+    });
+
+    let mut result: u64 = 0;
+    let mut pow: u64 = 1;
+    for digit in digits.rev() {
+        result += digit as u64 * pow;
+        pow *= 10;
+    }
+
+    if pow > 1 { Some(result) } else { None }
+}
+
 #[cfg(test)]
 mod tests {
-    fn part_1(s: &str) -> u64 {
-        let mut lines = s.lines().rev();
-        let operators: Vec<&str> = lines.next().unwrap().split_whitespace().collect();
-        let row_iters = lines.map(|l| {
-            l.split_whitespace()
-                .map(|o| o.parse::<u64>().unwrap())
-                .into_iter()
-        });
-        let mut results = vec![0; operators.len()];
-
-        for row_iter in row_iters {
-            for (col, value) in row_iter.enumerate() {
-                match operators[col] {
-                    "+" => {
-                        results[col] += value;
-                    }
-                    "*" => {
-                        if results[col] == 0 {
-                            results[col] = 1;
-                        }
-                        results[col] *= value;
-                    }
-                    _ => panic!("wut is {}", operators[col]),
-                }
-            }
-        }
-
-        results.iter().sum()
-    }
-
-    fn part_2(s: &str) -> u64 {
-        let mut lines: Vec<&str> = s.lines().collect();
-        let operators: Vec<&str> = lines.pop().unwrap().split_whitespace().collect();
-
-        // this is pretty terrible but works. Is there a better way?
-        // 1. work out column widths as whitespace is very significant
-        // 2. pull out strings for each column of each row with whitespace
-        // 3. for each column, for each n in width, pull out the chars from each row, parse to a number, do */+ in to an array of results
-        // 4. sum results
-
-        let mut column_widths = Vec::with_capacity(operators.len());
-        let intermediate_sizes: Vec<Vec<usize>> = lines
-            .iter()
-            .map(|l| l.split_whitespace().map(|v| v.len()).collect())
-            .collect();
-        for col in 0..operators.len() {
-            column_widths.push(intermediate_sizes.iter().map(|v| v[col]).max().unwrap());
-        }
-
-        let mut column_strs: Vec<Vec<String>> = Vec::with_capacity(operators.len());
-        for col in 0..operators.len() {
-            let mut column = Vec::new();
-            let column_width = column_widths[col];
-            lines.iter_mut().for_each(|l| {
-                let to_take = column_width.min(l.len());
-                column.push(l[0..to_take].to_owned());
-                if l.len() > to_take {
-                    *l = &l[to_take + 1..];
-                }
-            });
-            column_strs.push(column);
-        }
-
-        let mut results = vec![0; operators.len()];
-
-        for (col, op) in operators.iter().enumerate() {
-            let width = column_widths[col];
-
-            for n in 0..width {
-                let value: u64 = column_strs[col]
-                    .iter()
-                    .map(|s| s.chars().nth(n))
-                    .filter(|c| c.is_some() && c.unwrap() != ' ')
-                    .filter_map(|x| x)
-                    .collect::<String>()
-                    .parse()
-                    .unwrap();
-
-                match *op {
-                    "+" => {
-                        results[col] += value;
-                    }
-                    "*" => {
-                        if results[col] == 0 {
-                            results[col] = 1;
-                        }
-                        results[col] *= value;
-                    }
-                    _ => panic!("unknown operator: {}", op),
-                }
-            }
-        }
-
-        results.iter().sum()
-    }
+    use super::*;
+    use crate::bench;
 
     #[test]
     fn test_day_6_part_1_sample() {
@@ -113,6 +117,8 @@ mod tests {
 
     #[test]
     fn test_day_6_part_2_real() {
-        assert_eq!(part_2(include_str!("assets/day_6.txt")), 7858808482092);
+        bench(1000, || {
+            assert_eq!(part_2(include_str!("assets/day_6.txt")), 7858808482092);
+        });
     }
 }

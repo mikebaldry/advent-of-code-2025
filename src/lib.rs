@@ -4,6 +4,7 @@ mod day_3;
 mod day_4;
 mod day_5;
 mod day_6;
+mod day_6_bad;
 
 use std::time::{Duration, Instant};
 
