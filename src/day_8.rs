@@ -1,16 +1,10 @@
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
 struct Point {
     x: i64,
     y: i64,
     z: i64,
-}
-
-impl std::fmt::Display for Point {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("({}, {}, {})", self.x, self.y, self.z))
-    }
 }
 
 impl Point {
@@ -25,44 +19,35 @@ impl Point {
     }
 
     fn distance(&self, other: &Point) -> i64 {
-        (self.x - other.x).pow(2) + (self.y - other.y).pow(2) + (self.z - other.z).pow(2)
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        let dz = self.z - other.z;
+
+        dx * dx + dy * dy + dz * dz
     }
 }
 
-#[derive(Debug)]
 struct Space {
     points: Vec<Point>,
-    closest_points: VecDeque<(Point, Point)>,
+    closest_points: Vec<(i64, Point, Point)>,
 }
 
 impl Space {
     fn from_str(s: &str) -> Self {
         let points: Vec<_> = s.lines().map(Point::from_str).collect();
-        let mut sorted_closest_points: BTreeMap<i64, Vec<(Point, Point)>> = BTreeMap::new();
-        let mut processed: HashSet<(Point, Point)> = HashSet::new();
+        let points_ref = &points;
 
-        for &p1 in points.iter() {
-            for &p2 in points.iter() {
-                if p1 == p2 || processed.contains(&(p2, p1)) {
-                    continue;
-                }
+        let mut closest_points: Vec<_> = (0..points_ref.len())
+            .flat_map(|a| {
+                (a + 1..points_ref.len()).map(move |b| {
+                    let p1 = points_ref[a];
+                    let p2 = points_ref[b];
 
-                processed.insert((p1, p2));
-
-                sorted_closest_points
-                    .entry(p1.distance(&p2))
-                    .or_default()
-                    .push((p1, p2));
-            }
-        }
-
-        let mut closest_points = VecDeque::new();
-
-        for (_, pairs) in sorted_closest_points.iter() {
-            for &(p1, p2) in pairs.iter() {
-                closest_points.push_back((p1, p2));
-            }
-        }
+                    (p1.distance(&p2), p1, p2)
+                })
+            })
+            .collect();
+        closest_points.sort_unstable_by_key(|(d, _, _)| *d);
 
         Self {
             points,
@@ -71,13 +56,14 @@ impl Space {
     }
 
     fn part_1(&self, iters: usize) -> u32 {
-        let mut circuit_lookup = HashMap::new();
+        let mut circuit_lookup: HashMap<Point, usize> = self
+            .points
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (*p, i))
+            .collect();
 
-        for (i, p) in self.points.iter().enumerate() {
-            circuit_lookup.insert(p, i);
-        }
-
-        for (p1, p2) in self.closest_points.iter().take(iters) {
+        for (_, p1, p2) in self.closest_points.iter().take(iters) {
             let p1_circuit = *circuit_lookup.get(p1).unwrap();
             let p2_circuit = *circuit_lookup.get(p2).unwrap();
 
@@ -102,14 +88,15 @@ impl Space {
     }
 
     fn part_2(&self) -> u64 {
-        let mut circuit_lookup = HashMap::new();
+        let mut circuit_lookup: HashMap<Point, usize> = self
+            .points
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (*p, i))
+            .collect();
         let mut total_circuits = self.points.len();
 
-        for (i, p) in self.points.iter().enumerate() {
-            circuit_lookup.insert(p, i);
-        }
-
-        for (p1, p2) in self.closest_points.iter() {
+        for (_, p1, p2) in self.closest_points.iter() {
             let p1_circuit = *circuit_lookup.get(p1).unwrap();
             let p2_circuit = *circuit_lookup.get(p2).unwrap();
 
@@ -146,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_day_8_part_1_real() {
-        bench(10, || {
+        bench(100, || {
             let space = Space::from_str(include_str!("assets/day_8.txt"));
 
             assert_eq!(space.part_1(1000), 67488);
@@ -162,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_day_8_part_2_real() {
-        bench(10, || {
+        bench(100, || {
             let space = Space::from_str(include_str!("assets/day_8.txt"));
 
             assert_eq!(space.part_2(), 3767453340);
