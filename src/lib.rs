@@ -1,3 +1,4 @@
+#![feature(iter_map_windows)]
 #![allow(dead_code)]
 
 mod day_1;
@@ -9,6 +10,7 @@ mod day_6;
 mod day_6_bad;
 mod day_7;
 mod day_8;
+mod day_9;
 
 use std::time::{Duration, Instant};
 
